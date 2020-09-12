@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mailru/easyjson"
 
@@ -284,6 +285,13 @@ func main() {
 	db, err = mySQLConnectionData.ConnectDB()
 	if err != nil {
 		e.Logger.Fatalf("DB connection failed : %v", err)
+		for {
+			db, err = mySQLConnectionData.ConnectDB()
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 3)
+		}
 	}
 	db.SetMaxOpenConns(10)
 	defer db.Close()
