@@ -73,7 +73,7 @@ type Estate struct {
 	DoorWidth   int64   `db:"door_width" json:"doorWidth"`
 	Features    string  `db:"features" json:"features"`
 	Popularity  int64   `db:"popularity" json:"-"`
-	Latlon      string  `db:"latlon" json:"-"`
+	Latlon      string  `db:"latlon"`
 }
 
 //EstateSearchResponse estate/searchへのレスポンスの形式
@@ -866,10 +866,17 @@ func searchEstateNazotte2(c echo.Context) error {
 	if len(coordinates.Coordinates) == 0 {
 		return c.NoContent(http.StatusBadRequest)
 	}
+
+	b := coordinates.getBoundingBox()
+	if len(coordinates.Coordinates) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
 	// start
 	estatesInPolygon := []Estate{}
-	query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
-	err = db.Select(&estatesInPolygon, query)
+	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
+	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
+	query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon) AND latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`, coordinates.coordinatesToText())
+	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.Echo().Logger.Errorf("ErrNoRows if estate is in polygon : %v", err)
