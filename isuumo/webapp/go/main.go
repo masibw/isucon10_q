@@ -261,8 +261,8 @@ func main() {
 	e.POST("/initialize", initialize)
 
 	// Chair Handler
-	e.GET("/api/chair/:id", getChairDetail)
-	e.POST("/api/chair", postChair)
+	e.GET("/api/chair/:id", getChairDetail2)
+	e.POST("/api/chair", postChair2)
 	e.GET("/api/chair/search", searchChairs)
 	e.GET("/api/chair/low_priced", getLowPricedChair)
 	e.GET("/api/chair/search/condition", getChairSearchCondition)
