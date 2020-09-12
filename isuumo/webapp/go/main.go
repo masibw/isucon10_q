@@ -360,7 +360,10 @@ func getChairDetail2(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	chair := chairsCache[int64(id)]
+	chair, ok := chairsCache[int64(id)]
+	if !ok {
+		return c.NoContent(http.StatusNotFound)
+	}
 
 	resJSON, err := easyjson.Marshal(chair)
 	if err != nil {
