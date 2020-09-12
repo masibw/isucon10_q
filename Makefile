@@ -15,7 +15,7 @@ KATARU_CFG:=./kataribe.toml
 SLACKCAT:=slackcat --tee --channel general
 SLACKRAW:=slackcat --channel general
 
-PPROF:=go tool pprof -seconds 120 -png -output pprof.png http://localhost:8080/debug/pprof/profile
+PPROF:=go tool pprof -seconds 120 -png -output pprof.png http://localhost:1323/debug/pprof/profile
 
 PROJECT_ROOT:=/home/isucon/isuumo
 BUILD_DIR:=/home/isucon/isuumo/webapp/go
