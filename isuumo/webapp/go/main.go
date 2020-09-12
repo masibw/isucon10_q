@@ -61,18 +61,19 @@ type ChairListResponse struct {
 
 //Estate 物件
 type Estate struct {
-	ID          int64   `db:"id" json:"id"`
-	Thumbnail   string  `db:"thumbnail" json:"thumbnail"`
-	Name        string  `db:"name" json:"name"`
-	Description string  `db:"description" json:"description"`
-	Latitude    float64 `db:"latitude" json:"latitude"`
-	Longitude   float64 `db:"longitude" json:"longitude"`
-	Address     string  `db:"address" json:"address"`
-	Rent        int64   `db:"rent" json:"rent"`
-	DoorHeight  int64   `db:"door_height" json:"doorHeight"`
-	DoorWidth   int64   `db:"door_width" json:"doorWidth"`
-	Features    string  `db:"features" json:"features"`
-	Popularity  int64   `db:"popularity" json:"-"`
+	ID          int64       `db:"id" json:"id"`
+	Thumbnail   string      `db:"thumbnail" json:"thumbnail"`
+	Name        string      `db:"name" json:"name"`
+	Description string      `db:"description" json:"description"`
+	Latitude    float64     `db:"latitude" json:"latitude"`
+	Longitude   float64     `db:"longitude" json:"longitude"`
+	Address     string      `db:"address" json:"address"`
+	Rent        int64       `db:"rent" json:"rent"`
+	DoorHeight  int64       `db:"door_height" json:"doorHeight"`
+	DoorWidth   int64       `db:"door_width" json:"doorWidth"`
+	Features    string      `db:"features" json:"features"`
+	Popularity  int64       `db:"popularity" json:"-"`
+	Latlon      interface{} `db:"latlon"`
 }
 
 //EstateSearchResponse estate/searchへのレスポンスの形式
@@ -313,7 +314,22 @@ func initialize(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
-
+	//db.
+	latlonQuery := "SELECT * FROM estate"
+	var res []Estate
+	err := db.Select(&res, latlonQuery)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	for i := 0; i < len(res); i++ {
+		point := fmt.Sprintf("ST_GeomFromText('POINT(%f %f)')", res[i].Latitude, res[i].Longitude)
+		latlonInsertQuery := fmt.Sprintf("UPDATE estate set latlon = %s where id = ?;", point)
+		_, err := db.Exec(latlonInsertQuery, res[i].ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	fmt.Printf("%+v", res)
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
@@ -857,6 +873,7 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 }
 
 func searchEstateNazotte(c echo.Context) error {
+	// 緯度経度情報
 	coordinates := Coordinates{}
 	err := c.Bind(&coordinates)
 	if err != nil {
@@ -870,8 +887,11 @@ func searchEstateNazotte(c echo.Context) error {
 
 	b := coordinates.getBoundingBox()
 	estatesInBoundingBox := []Estate{}
-	query := `SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`
+	// 指定され範囲の最高の緯度経度にあうestateを探している
+	query := `SELECT id, longitude, latitude, name FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`
 	err = db.Select(&estatesInBoundingBox, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
+
+	// エラー処理
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
 		return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
@@ -880,6 +900,7 @@ func searchEstateNazotte(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	// start
 	estatesInPolygon := []Estate{}
 	for _, estate := range estatesInBoundingBox {
 		validatedEstate := Estate{}
@@ -901,6 +922,7 @@ func searchEstateNazotte(c echo.Context) error {
 
 	var re EstateSearchResponse
 	re.Estates = []Estate{}
+	// 制限より大きければ制限までに絞っている
 	if len(estatesInPolygon) > NazotteLimit {
 		re.Estates = estatesInPolygon[:NazotteLimit]
 	} else {
@@ -948,6 +970,7 @@ func getEstateSearchCondition(c echo.Context) error {
 	return c.JSON(http.StatusOK, estateSearchCondition)
 }
 
+// 受け取った緯度経度
 func (cs Coordinates) getBoundingBox() BoundingBox {
 	coordinates := cs.Coordinates
 	boundingBox := BoundingBox{
