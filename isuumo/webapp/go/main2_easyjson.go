@@ -908,6 +908,8 @@ func easyjson42239ddeDecodeGithubComIsuconIsucon10QualifyIsuumoJson9(in *jlexer.
       out.DoorWidth = int64(in.Int64())
     case "features":
       out.Features = string(in.String())
+    case "Latlon":
+      out.Latlon = string(in.String())
     default:
       in.SkipRecursive()
     }
@@ -976,6 +978,11 @@ func easyjson42239ddeEncodeGithubComIsuconIsucon10QualifyIsuumoJson9(out *jwrite
     const prefix string = ",\"features\":"
     out.RawString(prefix)
     out.String(string(in.Features))
+  }
+  {
+    const prefix string = ",\"Latlon\":"
+    out.RawString(prefix)
+    out.String(string(in.Latlon))
   }
   out.RawByte('}')
 }
