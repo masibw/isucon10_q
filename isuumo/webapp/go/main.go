@@ -364,6 +364,9 @@ func getChairDetail2(c echo.Context) error {
 	if !ok {
 		return c.NoContent(http.StatusNotFound)
 	}
+	if chair.Stock <= 0 {
+		return c.NoContent(http.StatusNotFound)
+	}
 
 	resJSON, err := easyjson.Marshal(chair)
 	if err != nil {
