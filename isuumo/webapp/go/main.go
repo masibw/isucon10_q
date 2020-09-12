@@ -24,7 +24,7 @@ import (
 )
 
 const Limit = 20
-const NazotteLimit = 50
+const NazotteLimit = 100
 
 var db *sqlx.DB
 var mySQLConnectionData *MySQLConnectionEnv
@@ -74,6 +74,7 @@ type Estate struct {
 	DoorWidth   int64   `db:"door_width" json:"doorWidth"`
 	Features    string  `db:"features" json:"features"`
 	Popularity  int64   `db:"popularity" json:"-"`
+	Latlon      string  `db:"latlon"`
 }
 
 //EstateSearchResponse estate/searchへのレスポンスの形式
@@ -272,7 +273,7 @@ func main() {
 	e.GET("/api/estate/search", searchEstates)
 	e.GET("/api/estate/low_priced", getLowPricedEstate)
 	e.POST("/api/estate/req_doc/:id", postEstateRequestDocument)
-	e.POST("/api/estate/nazotte", searchEstateNazotte)
+	e.POST("/api/estate/nazotte", searchEstateNazotte2)
 	e.GET("/api/estate/search/condition", getEstateSearchCondition)
 	e.GET("/api/recommended_estate/:id", searchRecommendedEstateWithChair)
 
@@ -314,7 +315,24 @@ func initialize(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
-
+	//db.
+	// latlonQuery := "SELECT * FROM estate"
+	latlonQuery := "UPDATE estate SET latlon = POINT(latitude,longitude);"
+	// var res []Estate
+	_, err := db.Exec(latlonQuery)
+	// err := db.Select(&res, latlonQuery)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	// for i := 0; i < len(res); i++ {
+	// 	point := fmt.Sprintf("ST_GeomFromText('POINT(%f %f)')", res[i].Latitude, res[i].Longitude)
+	// 	fmt.Println(point)
+	// 	latlonInsertQuery := fmt.Sprintf("UPDATE estate set latlon = %s where id = ?;", point)
+	// 	_, err := db.Exec(latlonInsertQuery, res[i].ID)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
@@ -702,7 +720,7 @@ func postEstate(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
+		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity, latlon) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,POINT(?,?))", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity, latitude, longitude)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
@@ -907,7 +925,54 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	return c.JSONBlob(http.StatusOK, resJSON)
 }
 
+func searchEstateNazotte2(c echo.Context) error {
+	// 緯度経度情報
+	coordinates := Coordinates{}
+	err := c.Bind(&coordinates)
+	if err != nil {
+		c.Echo().Logger.Infof("post search estate nazotte failed : %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if len(coordinates.Coordinates) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	b := coordinates.getBoundingBox()
+	if len(coordinates.Coordinates) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	// start
+	estatesInPolygon := []Estate{}
+	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
+	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
+	query := fmt.Sprintf(`SELECT * FROM estate WHERE  AND latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? AND ST_Contains(ST_PolygonFromText(%s), latlon) ORDER BY popularity DESC, id ASC`, coordinates.coordinatesToText())
+	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.Echo().Logger.Errorf("ErrNoRows if estate is in polygon : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		} else {
+			c.Echo().Logger.Errorf("db access is failed on executing validate if estate is in polygon : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	var re EstateSearchResponse
+	re.Estates = []Estate{}
+	// 制限より大きければ制限までに絞っている
+	if len(estatesInPolygon) > NazotteLimit {
+		re.Estates = estatesInPolygon[:NazotteLimit]
+	} else {
+		re.Estates = estatesInPolygon
+	}
+	re.Count = int64(len(re.Estates))
+
+	return c.JSON(http.StatusOK, re)
+}
+
 func searchEstateNazotte(c echo.Context) error {
+	// 緯度経度情報
 	coordinates := Coordinates{}
 	err := c.Bind(&coordinates)
 	if err != nil {
@@ -921,8 +986,11 @@ func searchEstateNazotte(c echo.Context) error {
 
 	b := coordinates.getBoundingBox()
 	estatesInBoundingBox := []Estate{}
-	query := `SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`
+	// 指定され範囲の最高の緯度経度にあうestateを探している
+	query := `SELECT id, longitude, latitude, name FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`
 	err = db.Select(&estatesInBoundingBox, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
+
+	// エラー処理
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
 		resJSON,err := easyjson.Marshal(EstateSearchResponse{Count: 0, Estates: []Estate{}})
@@ -937,6 +1005,7 @@ func searchEstateNazotte(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	// start
 	estatesInPolygon := []Estate{}
 	for _, estate := range estatesInBoundingBox {
 		validatedEstate := Estate{}
@@ -958,6 +1027,7 @@ func searchEstateNazotte(c echo.Context) error {
 
 	var re EstateSearchResponse
 	re.Estates = []Estate{}
+	// 制限より大きければ制限までに絞っている
 	if len(estatesInPolygon) > NazotteLimit {
 		re.Estates = estatesInPolygon[:NazotteLimit]
 	} else {
@@ -1016,6 +1086,7 @@ func getEstateSearchCondition(c echo.Context) error {
 	return c.JSONBlob(http.StatusOK, resJSON)
 }
 
+// 受け取った緯度経度
 func (cs Coordinates) getBoundingBox() BoundingBox {
 	coordinates := cs.Coordinates
 	boundingBox := BoundingBox{
