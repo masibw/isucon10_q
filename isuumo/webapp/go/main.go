@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	_ "net/http/pprof"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo"
@@ -239,6 +241,10 @@ func init() {
 }
 
 func main() {
+
+	go func() {
+		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 	// Echo instance
 	e := echo.New()
 	e.Debug = true
