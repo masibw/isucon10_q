@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mailru/easyjson"
 
@@ -293,7 +294,14 @@ func main() {
 	e.Logger.Fatal(e.Start(serverPort))
 }
 
-var chairsCache map[int64]*Chair = map[int64]*Chair{}
+type cache struct {
+	chairs map[int64]*Chair
+	sync.Mutex
+}
+
+var chairsCache cache = cache{
+	chairs: map[int64]*Chair{},
+}
 
 func initialize(c echo.Context) error {
 	sqlDir := filepath.Join("..", "mysql", "db")
@@ -345,7 +353,7 @@ func initialize(c echo.Context) error {
 	}
 
 	for _, c := range chairs {
-		chairsCache[c.ID] = &c
+		chairsCache.chairs[c.ID] = &c
 	}
 
 	return c.JSON(http.StatusOK, InitializeResponse{
@@ -360,7 +368,10 @@ func getChairDetail2(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	chair, ok := chairsCache[int64(id)]
+	chairsCache.Lock()
+	chair, ok := chairsCache.chairs[int64(id)]
+	chairsCache.Unlock()
+
 	if !ok {
 		return c.NoContent(http.StatusNotFound)
 	}
@@ -501,7 +512,8 @@ func postChair2(c echo.Context) error {
 			return c.NoContent(http.StatusBadRequest)
 		}
 
-		chairsCache[int64(id)] = &Chair{
+		chairsCache.Lock()
+		chairsCache.chairs[int64(id)] = &Chair{
 			ID:          int64(id),
 			Name:        name,
 			Description: description,
@@ -516,6 +528,7 @@ func postChair2(c echo.Context) error {
 			Popularity:  int64(popularity),
 			Stock:       int64(stock),
 		}
+		chairsCache.Unlock()
 
 		_, err := db.Exec("INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock)
 		if err != nil {
@@ -703,9 +716,10 @@ func buyChair(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	stock := chairsCache[int64(id)].Stock - 1
-
-	chairsCache[int64(id)].Stock = stock
+	chairsCache.Lock()
+	stock := chairsCache.chairs[int64(id)].Stock - 1
+	chairsCache.chairs[int64(id)].Stock = stock
+	chairsCache.Unlock()
 
 	lowPricedCache.ok = false
 
