@@ -272,7 +272,7 @@ func main() {
 	e.GET("/api/estate/search", searchEstates)
 	e.GET("/api/estate/low_priced", getLowPricedEstate)
 	e.POST("/api/estate/req_doc/:id", postEstateRequestDocument)
-	e.POST("/api/estate/nazotte", searchEstateNazotte)
+	e.POST("/api/estate/nazotte", searchEstateNazotte2)
 	e.GET("/api/estate/search/condition", getEstateSearchCondition)
 	e.GET("/api/recommended_estate/:id", searchRecommendedEstateWithChair)
 
@@ -870,6 +870,45 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, EstateListResponse{Estates: estates})
+}
+
+func searchEstateNazotte2(c echo.Context) error {
+	// 緯度経度情報
+	coordinates := Coordinates{}
+	err := c.Bind(&coordinates)
+	if err != nil {
+		c.Echo().Logger.Infof("post search estate nazotte failed : %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if len(coordinates.Coordinates) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	// start
+	estatesInPolygon := []Estate{}
+	query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
+	err = db.Select(&estatesInPolygon, query)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.Echo().Logger.Errorf("ErrNoRows if estate is in polygon : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		} else {
+			c.Echo().Logger.Errorf("db access is failed on executing validate if estate is in polygon : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	var re EstateSearchResponse
+	re.Estates = []Estate{}
+	// 制限より大きければ制限までに絞っている
+	if len(estatesInPolygon) > NazotteLimit {
+		re.Estates = estatesInPolygon[:NazotteLimit]
+	} else {
+		re.Estates = estatesInPolygon
+	}
+	re.Count = int64(len(re.Estates))
+
+	return c.JSON(http.StatusOK, re)
 }
 
 func searchEstateNazotte(c echo.Context) error {
