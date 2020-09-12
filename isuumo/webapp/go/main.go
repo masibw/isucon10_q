@@ -916,7 +916,6 @@ func searchEstates2(c echo.Context) error {
 		//popularityとidだけlimit offsetで取ってくる
 		params2 := append(params, 1, page*perPage)
 		err = db.Get(&result, kaizenQuery+searchCondition+limitOffset, params2...)
-		fmt.Println(kaizenQuery+searchCondition+limitOffset)
 		if err != nil {
 			c.Logger().Errorf("searchEstates DB execution error : %v", err)
 			return c.NoContent(http.StatusInternalServerError)
