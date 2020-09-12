@@ -9,6 +9,7 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
+	github.com/mailru/easyjson v0.7.6
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/valyala/fasttemplate v1.1.0 // indirect
