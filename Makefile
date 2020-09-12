@@ -1,14 +1,14 @@
 export GO111MODULE=on
 DB_HOST:=127.0.0.1
 DB_PORT:=3306
-DB_USER:=isucari
-DB_PASS:=isucari
-DB_NAME:=isucari
+DB_USER:=isucon
+DB_PASS:=isucon
+DB_NAME:=isuumo
 
 MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 
 NGX_LOG:=/var/log/nginx/access.log
-MYSQL_LOG:=/var/log/mariadb/slow-query.log
+MYSQL_LOG:=/var/log/mysql/slow.log
 
 KATARU_CFG:=./kataribe.toml
 
@@ -17,9 +17,9 @@ SLACKRAW:=slackcat --channel general
 
 PPROF:=go tool pprof -seconds 120 -png -output pprof.png http://localhost:8080/debug/pprof/profile
 
-PROJECT_ROOT:=/home/isucon/isucari
-BUILD_DIR:=/home/isucon/torb/webapp/go
-BIN_NAME:=torb
+PROJECT_ROOT:=/home/isucon/isuumo
+BUILD_DIR:=/home/isucon/isuumo/webapp/go
+BIN_NAME:=isuumo
 
 CA:=-o /dev/null -s -w "%{http_code}\n"
 
@@ -37,7 +37,7 @@ build:
 
 .PHONY: restart
 restart:
-	sudo systemctl restart torb.go
+	sudo systemctl restart isuumo.go.service
 
 .PHONY: dev
 dev: build
@@ -45,14 +45,14 @@ dev: build
 	./$(BIN_NAME)
 
 .PHONY: bench-dev
-bench-dev: commit before slow-on dev
+bench-dev: before slow-on dev
 
 .PHONY: bench
-bench: commit before build restart log
+bench: before build restart log
 
 .PHONY: log
 log:
-	sudo journalctl -u torb.go -n10 -f
+	sudo journalctl -u isuumo.go.service -n10 -f
 
 .PHONY: maji
 bench: commit before build restart
