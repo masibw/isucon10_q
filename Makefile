@@ -32,7 +32,7 @@ deps:
 .PHONY: build
 build:
 	cd $(BUILD_DIR); \
-	make build
+	make
 	#TODO
 
 .PHONY: restart

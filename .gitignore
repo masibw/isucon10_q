@@ -30,3 +30,4 @@ isuumo/webapp/rust/
 env.sh
 go/
 local/
+logs/
