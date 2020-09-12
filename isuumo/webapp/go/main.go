@@ -682,15 +682,10 @@ func postEstate(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
+		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity, latlon) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,POINT(?,?))", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity, latitude, longitude)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
-		}
-		latlonQuery := "UPDATE estate SET latlon = POINT(latitude,longitude) where id = ?;"
-		_, err = db.Exec(latlonQuery, id)
-		if err != nil {
-			log.Fatalf(err.Error())
 		}
 	}
 	if err := tx.Commit(); err != nil {
