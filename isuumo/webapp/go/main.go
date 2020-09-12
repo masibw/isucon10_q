@@ -492,6 +492,7 @@ func postChair2(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	chairsCache.Lock()
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
 		id := rm.NextInt()
@@ -512,7 +513,6 @@ func postChair2(c echo.Context) error {
 			return c.NoContent(http.StatusBadRequest)
 		}
 
-		chairsCache.Lock()
 		chairsCache.chairs[int64(id)] = &Chair{
 			ID:          int64(id),
 			Name:        name,
@@ -528,15 +528,16 @@ func postChair2(c echo.Context) error {
 			Popularity:  int64(popularity),
 			Stock:       int64(stock),
 		}
-		chairsCache.Unlock()
 
 		_, err := db.Exec("INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock)
 		if err != nil {
 			c.Logger().Errorf("failed to insert chair: %v", err)
+			chairsCache.Unlock()
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
 
+	chairsCache.Unlock()
 	return c.NoContent(http.StatusCreated)
 }
 
