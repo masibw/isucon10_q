@@ -693,6 +693,8 @@ func postEstate(c echo.Context) error {
 		c.Logger().Errorf("failed to commit tx: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	lowEstateCache.ok = false
 	return c.NoContent(http.StatusCreated)
 }
 
