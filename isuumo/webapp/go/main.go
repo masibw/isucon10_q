@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/mailru/easyjson"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mailru/easyjson"
 
 	_ "net/http/pprof"
 
@@ -359,9 +360,9 @@ func getChairDetail(c echo.Context) error {
 		c.Echo().Logger.Infof("requested id's chair is sold out : %v", id)
 		return c.NoContent(http.StatusNotFound)
 	}
-	resJSON,err := easyjson.Marshal(chair)
+	resJSON, err := easyjson.Marshal(chair)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -549,9 +550,9 @@ func searchChairs(c echo.Context) error {
 	err = db.Select(&chairs, searchQuery+searchCondition+limitOffset, params...)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			resJSON,err := easyjson.Marshal(ChairSearchResponse{Count: 0, Chairs: []Chair{}})
+			resJSON, err := easyjson.Marshal(ChairSearchResponse{Count: 0, Chairs: []Chair{}})
 
-			if err != nil{
+			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
@@ -562,9 +563,9 @@ func searchChairs(c echo.Context) error {
 	}
 
 	res.Chairs = chairs
-	resJSON,err := easyjson.Marshal(res)
+	resJSON, err := easyjson.Marshal(res)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -606,9 +607,9 @@ func buyChair(c echo.Context) error {
 }
 
 func getChairSearchCondition(c echo.Context) error {
-	resJSON,err := easyjson.Marshal(chairSearchCondition)
+	resJSON, err := easyjson.Marshal(chairSearchCondition)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -633,8 +634,8 @@ func getLowPricedChair(c echo.Context) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.Logger().Error("getLowPricedChair not found")
-			resJSON,err := easyjson.Marshal( ChairListResponse{[]Chair{}})
-			if err != nil{
+			resJSON, err := easyjson.Marshal(ChairListResponse{[]Chair{}})
+			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
@@ -650,9 +651,9 @@ func getLowPricedChair(c echo.Context) error {
 		ok: true,
 	}
 
-	resJSON,err := easyjson.Marshal(ChairListResponse{Chairs: chairs})
+	resJSON, err := easyjson.Marshal(ChairListResponse{Chairs: chairs})
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -676,9 +677,9 @@ func getEstateDetail(c echo.Context) error {
 		c.Echo().Logger.Errorf("Database Execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	resJSON,err := easyjson.Marshal(estate)
+	resJSON, err := easyjson.Marshal(estate)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -849,9 +850,9 @@ func searchEstates(c echo.Context) error {
 	err = db.Select(&estates, searchQuery+searchCondition+limitOffset, params...)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			resJSON,err := easyjson.Marshal(EstateSearchResponse{Count: 0, Estates: []Estate{}})
+			resJSON, err := easyjson.Marshal(EstateSearchResponse{Count: 0, Estates: []Estate{}})
 
-			if err != nil{
+			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
@@ -862,9 +863,9 @@ func searchEstates(c echo.Context) error {
 	}
 
 	res.Estates = estates
-	resJSON,err := easyjson.Marshal(res)
+	resJSON, err := easyjson.Marshal(res)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -877,9 +878,9 @@ func getLowPricedEstate(c echo.Context) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.Logger().Error("getLowPricedEstate not found")
-			resJSON,err := easyjson.Marshal(EstateListResponse{[]Estate{}})
+			resJSON, err := easyjson.Marshal(EstateListResponse{[]Estate{}})
 
-			if err != nil{
+			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
@@ -888,9 +889,9 @@ func getLowPricedEstate(c echo.Context) error {
 		c.Logger().Errorf("getLowPricedEstate DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	resJSON,err := easyjson.Marshal(EstateListResponse{Estates: estates})
+	resJSON, err := easyjson.Marshal(EstateListResponse{Estates: estates})
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -924,9 +925,9 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	err = db.Select(&estates, query, w, h, w, d, h, w, h, d, d, w, d, h, Limit)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			resJSON,err := easyjson.Marshal(EstateListResponse{[]Estate{}})
+			resJSON, err := easyjson.Marshal(EstateListResponse{[]Estate{}})
 
-			if err != nil{
+			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
@@ -936,9 +937,9 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	resJSON,err := easyjson.Marshal(EstateListResponse{Estates: estates})
+	resJSON, err := easyjson.Marshal(EstateListResponse{Estates: estates})
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -966,7 +967,8 @@ func searchEstateNazotte2(c echo.Context) error {
 	estatesInPolygon := []Estate{}
 	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
 	// query := fmt.Sprintf(`SELECT * FROM estate WHERE ST_Contains(ST_PolygonFromText(%s), latlon)`, coordinates.coordinatesToText())
-	query := fmt.Sprintf(`SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? AND ST_Contains(ST_PolygonFromText(%s), latlon) ORDER BY popularity DESC, id ASC`, coordinates.coordinatesToText())
+	// query := fmt.Sprintf(`SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? AND ST_Contains(ST_PolygonFromText(%s), latlon) ORDER BY popularity DESC, id ASC`, coordinates.coordinatesToText())
+	query := fmt.Sprintf(`SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? AND ST_Contains(ST_PolygonFromText(%s), latlon) ORDER BY popularity DESC, id ASC LIMIT %d`, coordinates.coordinatesToText(), NazotteLimit)
 	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1013,9 +1015,9 @@ func searchEstateNazotte(c echo.Context) error {
 	// エラー処理
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
-		resJSON,err := easyjson.Marshal(EstateSearchResponse{Count: 0, Estates: []Estate{}})
+		resJSON, err := easyjson.Marshal(EstateSearchResponse{Count: 0, Estates: []Estate{}})
 
-		if err != nil{
+		if err != nil {
 			c.Logger().Errorf("searchEstates DB execution error : %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
@@ -1054,9 +1056,9 @@ func searchEstateNazotte(c echo.Context) error {
 		re.Estates = estatesInPolygon
 	}
 	re.Count = int64(len(re.Estates))
-	resJSON,err := easyjson.Marshal(re)
+	resJSON, err := easyjson.Marshal(re)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1097,9 +1099,9 @@ func postEstateRequestDocument(c echo.Context) error {
 }
 
 func getEstateSearchCondition(c echo.Context) error {
-	resJSON,err := easyjson.Marshal(estateSearchCondition)
+	resJSON, err := easyjson.Marshal(estateSearchCondition)
 
-	if err != nil{
+	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
