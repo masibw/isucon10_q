@@ -315,20 +315,23 @@ func initialize(c echo.Context) error {
 		}
 	}
 	//db.
-	latlonQuery := "SELECT * FROM estate"
-	var res []Estate
-	err := db.Select(&res, latlonQuery)
+	// latlonQuery := "SELECT * FROM estate"
+	latlonQuery := "UPDATE estate SET latlon = POINT(latitude,longitude);"
+	// var res []Estate
+	_, err := db.Exec(latlonQuery)
+	// err := db.Select(&res, latlonQuery)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	for i := 0; i < len(res); i++ {
-		point := fmt.Sprintf("ST_GeomFromText('POINT(%f %f)')", res[i].Latitude, res[i].Longitude)
-		latlonInsertQuery := fmt.Sprintf("UPDATE estate set latlon = %s where id = ?;", point)
-		_, err := db.Exec(latlonInsertQuery, res[i].ID)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	// for i := 0; i < len(res); i++ {
+	// 	point := fmt.Sprintf("ST_GeomFromText('POINT(%f %f)')", res[i].Latitude, res[i].Longitude)
+	// 	fmt.Println(point)
+	// 	latlonInsertQuery := fmt.Sprintf("UPDATE estate set latlon = %s where id = ?;", point)
+	// 	_, err := db.Exec(latlonInsertQuery, res[i].ID)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
