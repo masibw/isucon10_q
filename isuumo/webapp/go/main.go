@@ -697,7 +697,9 @@ func buyChair(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	chairsCache[int64(id)].Stock = chairsCache[int64(id)].Stock - 1
+	stock := chairsCache[int64(id)].Stock - 1
+
+	chairsCache[int64(id)].Stock = stock
 
 	lowPricedCache.ok = false
 
