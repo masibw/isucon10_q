@@ -268,7 +268,7 @@ func main() {
 	// Estate Handler
 	e.GET("/api/estate/:id", getEstateDetail)
 	e.POST("/api/estate", postEstate)
-	e.GET("/api/estate/search", searchEstates)
+	e.GET("/api/estate/search", searchEstates2)
 	e.GET("/api/estate/low_priced", getLowPricedEstate)
 	e.POST("/api/estate/req_doc/:id", postEstateRequestDocument)
 	e.POST("/api/estate/nazotte", searchEstateNazotte)
@@ -802,6 +802,160 @@ func searchEstates(c echo.Context) error {
 	res.Estates = estates
 
 	return c.JSON(http.StatusOK, res)
+}
+
+
+func searchEstates2(c echo.Context) error {
+	conditions := make([]string, 0)
+	params := make([]interface{}, 0)
+
+	if c.QueryParam("doorHeightRangeId") != "" {
+		doorHeight, err := getRange(estateSearchCondition.DoorHeight, c.QueryParam("doorHeightRangeId"))
+		if err != nil {
+			c.Echo().Logger.Infof("doorHeightRangeID invalid, %v : %v", c.QueryParam("doorHeightRangeId"), err)
+			return c.NoContent(http.StatusBadRequest)
+		}
+
+		if doorHeight.Min != -1 {
+			conditions = append(conditions, "door_height >= ?")
+			params = append(params, doorHeight.Min)
+		}
+		if doorHeight.Max != -1 {
+			conditions = append(conditions, "door_height < ?")
+			params = append(params, doorHeight.Max)
+		}
+	}
+
+	if c.QueryParam("doorWidthRangeId") != "" {
+		doorWidth, err := getRange(estateSearchCondition.DoorWidth, c.QueryParam("doorWidthRangeId"))
+		if err != nil {
+			c.Echo().Logger.Infof("doorWidthRangeID invalid, %v : %v", c.QueryParam("doorWidthRangeId"), err)
+			return c.NoContent(http.StatusBadRequest)
+		}
+
+		if doorWidth.Min != -1 {
+			conditions = append(conditions, "door_width >= ?")
+			params = append(params, doorWidth.Min)
+		}
+		if doorWidth.Max != -1 {
+			conditions = append(conditions, "door_width < ?")
+			params = append(params, doorWidth.Max)
+		}
+	}
+
+	if c.QueryParam("rentRangeId") != "" {
+		estateRent, err := getRange(estateSearchCondition.Rent, c.QueryParam("rentRangeId"))
+		if err != nil {
+			c.Echo().Logger.Infof("rentRangeID invalid, %v : %v", c.QueryParam("rentRangeId"), err)
+			return c.NoContent(http.StatusBadRequest)
+		}
+
+		if estateRent.Min != -1 {
+			conditions = append(conditions, "rent >= ?")
+			params = append(params, estateRent.Min)
+		}
+		if estateRent.Max != -1 {
+			conditions = append(conditions, "rent < ?")
+			params = append(params, estateRent.Max)
+		}
+	}
+
+	if c.QueryParam("features") != "" {
+		for _, f := range strings.Split(c.QueryParam("features"), ",") {
+			conditions = append(conditions, "features like concat('%', ?, '%')")
+			params = append(params, f)
+		}
+	}
+
+	if len(conditions) == 0 {
+		c.Echo().Logger.Infof("searchEstates search condition not found")
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	page, err := strconv.Atoi(c.QueryParam("page"))
+	if err != nil {
+		c.Logger().Infof("Invalid format page parameter : %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	perPage, err := strconv.Atoi(c.QueryParam("perPage"))
+	if err != nil {
+		c.Logger().Infof("Invalid format perPage parameter : %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	searchQuery := "SELECT * FROM estate WHERE "
+	countQuery := "SELECT COUNT(*) FROM estate WHERE "
+	searchCondition := strings.Join(conditions, " AND ")
+	popularityQuery := "SELECT popularity FROM estate WHERE "
+	idQuery := "SELECT id FROM estate WHERE "
+	limitOffset := " ORDER BY popularity DESC, id ASC LIMIT ? OFFSET ?"
+
+	limitCondition := "AND popularity < ? or (popularity = ? and id > ?) "
+	limit := " ORDER BY popularity DESC, id ASC LIMIT ?"
+
+
+	//件数をとってくる redisかなんかで管理したい
+	var res EstateSearchResponse
+	err = db.Get(&res.Count, countQuery+searchCondition, params...)
+
+	if err != nil {
+		c.Logger().Errorf("searchEstates DB execution error : %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	//最初のページは普通にとってくる
+	if page != 0 {
+		var popularity int
+		var id int
+		//popularityとidだけlimit offsetで取ってくる
+		params2 := append(params, perPage, page*perPage)
+		err = db.Get(&popularity, popularityQuery+searchCondition+limitOffset, params2...)
+
+		if err != nil {
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		err = db.Get(&id, idQuery+searchCondition+limitOffset, params2...)
+		if err != nil {
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		//popularityとidだけlimit offsetで取ってくる ここまで
+
+		//物件情報をとってくる 余裕があれば ORじゃなくて UNION ALL にしたい でもどのみちindex効かないから良いか？
+		estates := []Estate{}
+		params = append(params,popularity,popularity,id, perPage)
+		err = db.Select(&estates, searchQuery+searchCondition+limitCondition+limit, params...)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
+			}
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+
+		res.Estates = estates
+
+		return c.JSON(http.StatusOK, res)
+	}else{
+		estates := []Estate{}
+		params = append(params, perPage, page*perPage)
+		err = db.Select(&estates, searchQuery+searchCondition+limitOffset, params...)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
+			}
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+
+		res.Estates = estates
+
+		return c.JSON(http.StatusOK, res)
+	}
+
 }
 
 func getLowPricedEstate(c echo.Context) error {

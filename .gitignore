@@ -28,7 +28,6 @@ isuumo/webapp/rust/
 .vscode-server/
 .wget-hsts
 env.sh
-go/
 local/
 logs/
 .lesshst
