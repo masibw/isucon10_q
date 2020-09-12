@@ -61,19 +61,19 @@ type ChairListResponse struct {
 
 //Estate 物件
 type Estate struct {
-	ID          int64       `db:"id" json:"id"`
-	Thumbnail   string      `db:"thumbnail" json:"thumbnail"`
-	Name        string      `db:"name" json:"name"`
-	Description string      `db:"description" json:"description"`
-	Latitude    float64     `db:"latitude" json:"latitude"`
-	Longitude   float64     `db:"longitude" json:"longitude"`
-	Address     string      `db:"address" json:"address"`
-	Rent        int64       `db:"rent" json:"rent"`
-	DoorHeight  int64       `db:"door_height" json:"doorHeight"`
-	DoorWidth   int64       `db:"door_width" json:"doorWidth"`
-	Features    string      `db:"features" json:"features"`
-	Popularity  int64       `db:"popularity" json:"-"`
-	Latlon      interface{} `db:"latlon"`
+	ID          int64   `db:"id" json:"id"`
+	Thumbnail   string  `db:"thumbnail" json:"thumbnail"`
+	Name        string  `db:"name" json:"name"`
+	Description string  `db:"description" json:"description"`
+	Latitude    float64 `db:"latitude" json:"latitude"`
+	Longitude   float64 `db:"longitude" json:"longitude"`
+	Address     string  `db:"address" json:"address"`
+	Rent        int64   `db:"rent" json:"rent"`
+	DoorHeight  int64   `db:"door_height" json:"doorHeight"`
+	DoorWidth   int64   `db:"door_width" json:"doorWidth"`
+	Features    string  `db:"features" json:"features"`
+	Popularity  int64   `db:"popularity" json:"-"`
+	Latlon      string  `db:"latlon" json:"-"`
 }
 
 //EstateSearchResponse estate/searchへのレスポンスの形式
