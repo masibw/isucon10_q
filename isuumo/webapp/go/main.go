@@ -831,8 +831,7 @@ func getLowPricedEstate(c echo.Context) error {
 
 	res := EstateListResponse{Estates: estates}
 
-	lowEstateCache.c = &res
-	lowEstateCache.ok = true
+	lowEstateCache = lowPricedEstateCache{c: &res, ok: true}
 
 	return c.JSON(http.StatusOK, res)
 }
