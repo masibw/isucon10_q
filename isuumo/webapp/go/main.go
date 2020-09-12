@@ -887,8 +887,7 @@ func searchEstates2(c echo.Context) error {
 	searchQuery := "SELECT * FROM estate WHERE "
 	countQuery := "SELECT COUNT(*) FROM estate WHERE "
 	searchCondition := strings.Join(conditions, " AND ")
-	popularityQuery := "SELECT popularity FROM estate WHERE "
-	idQuery := "SELECT id FROM estate WHERE "
+	kaizenQuery := "SELECT popularity, id FROM estate WHERE "
 	limitOffset := " ORDER BY popularity DESC, id ASC LIMIT ? OFFSET ?"
 
 	limitCondition := " AND popularity < ? or (popularity = ? and id > ?) "
@@ -906,26 +905,28 @@ func searchEstates2(c echo.Context) error {
 
 	//最初のページは普通にとってくる
 	if page != 0 {
-		var popularity int
-		var id int
-		//popularityとidだけlimit offsetで取ってくる
-		params2 := append(params, perPage, page*perPage)
-		err = db.Get(&popularity, popularityQuery+searchCondition+limitOffset, params2...)
 
+		type Result struct{
+			 Popularity int `db:"popularity"`
+			 Id int `db:"id"`
+		}
+
+		var result Result
+
+		//popularityとidだけlimit offsetで取ってくる
+		params2 := append(params, 1, page*perPage)
+		err = db.Get(&result, kaizenQuery+searchCondition+limitOffset, params2...)
+		fmt.Println(kaizenQuery+searchCondition+limitOffset)
 		if err != nil {
 			c.Logger().Errorf("searchEstates DB execution error : %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
-		err = db.Get(&id, idQuery+searchCondition+limitOffset, params2...)
-		if err != nil {
-			c.Logger().Errorf("searchEstates DB execution error : %v", err)
-			return c.NoContent(http.StatusInternalServerError)
-		}
+
 		//popularityとidだけlimit offsetで取ってくる ここまで
 
 		//物件情報をとってくる 余裕があれば ORじゃなくて UNION ALL にしたい でもどのみちindex効かないから良いか？
 		estates := []Estate{}
-		params = append(params,popularity,popularity,id, perPage)
+		params = append(params,result.Popularity,result.Popularity,result.Id, perPage)
 		err = db.Select(&estates, searchQuery+searchCondition+limitCondition+limit, params...)
 
 		if err != nil {
