@@ -372,7 +372,7 @@ func getChairDetail2(c echo.Context) error {
 	chair, ok := chairsCache.chairs[int64(id)]
 	if !ok {
 		chairsCache.Unlock()
-		return c.NoContent(http.StatusNotFound)
+		return getChairDetail(c)
 	}
 	if chair.Stock <= 0 {
 		chairsCache.Unlock()
