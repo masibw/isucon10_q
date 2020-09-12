@@ -329,7 +329,6 @@ func initialize(c echo.Context) error {
 			log.Fatal(err)
 		}
 	}
-	fmt.Printf("%+v", res)
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
