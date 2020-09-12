@@ -921,12 +921,32 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	w := chair.Width
 	h := chair.Height
 	d := chair.Depth
-	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
-	err = db.Select(&estates, query, w, h, w, d, h, w, h, d, d, w, d, h, Limit)
+	// 追加処理
+	// start
+	var min1, min2 int64
+	if w > h {
+		min1 = h
+		if w > d {
+			min2 = d
+		} else {
+			min2 = w
+		}
+	} else {
+		min2 = w
+		if h > d {
+			min2 = d
+		} else {
+			min2 = h
+		}
+	}
+	// end
+	// query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
+	// err = db.Select(&estates, query, w, h, w, d, h, w, h, d, d, w, d, h, Limit)
+	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
+	err = db.Select(&estates, query, min1, min2, min2, min1, Limit)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			resJSON, err := easyjson.Marshal(EstateListResponse{[]Estate{}})
-
 			if err != nil {
 				c.Logger().Errorf("searchEstates DB execution error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
@@ -938,7 +958,6 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	}
 
 	resJSON, err := easyjson.Marshal(EstateListResponse{Estates: estates})
-
 	if err != nil {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
