@@ -19,6 +19,7 @@ CREATE TABLE isuumo.estate
     features VARCHAR(64) NOT NULL,
     popularity INTEGER NOT NULL,
     latlon POINT
+    INDEX idx_rent_id (rent,id)
 );
 
 CREATE TABLE isuumo.chair
