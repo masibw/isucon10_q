@@ -1005,7 +1005,13 @@ func searchEstates2(c echo.Context) error {
 
 		res.Estates = estates
 
-		return c.JSON(http.StatusOK, res)
+		resJSON,err := easyjson.Marshal(res)
+
+		if err != nil{
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		return c.JSONBlob(http.StatusOK, resJSON)
 	}else{
 		estates := []Estate{}
 		params = append(params, perPage, page*perPage)
@@ -1020,7 +1026,13 @@ func searchEstates2(c echo.Context) error {
 
 		res.Estates = estates
 
-		return c.JSON(http.StatusOK, res)
+		resJSON,err := easyjson.Marshal(res)
+
+		if err != nil{
+			c.Logger().Errorf("searchEstates DB execution error : %v", err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		return c.JSONBlob(http.StatusOK, resJSON)
 	}
 
 }
@@ -1143,7 +1155,13 @@ func searchEstateNazotte2(c echo.Context) error {
 	}
 	re.Count = int64(len(re.Estates))
 
-	return c.JSON(http.StatusOK, re)
+	resJSON,err := easyjson.Marshal(re)
+
+	if err != nil{
+		c.Logger().Errorf("searchEstates DB execution error : %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.JSONBlob(http.StatusOK, resJSON)
 }
 
 func searchEstateNazotte(c echo.Context) error {
