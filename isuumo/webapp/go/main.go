@@ -565,6 +565,8 @@ func buyChair(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
+	lowPricedCache.ok = false
+
 	return c.NoContent(http.StatusOK)
 }
 
@@ -572,7 +574,18 @@ func getChairSearchCondition(c echo.Context) error {
 	return c.JSON(http.StatusOK, chairSearchCondition)
 }
 
+type lowPricedChairCache struct {
+	c  *ChairListResponse
+	ok bool
+}
+
+var lowPricedCache lowPricedChairCache = lowPricedChairCache{c: nil, ok: false}
+
 func getLowPricedChair(c echo.Context) error {
+	if lowPricedCache.ok {
+		return c.JSON(http.StatusOK, lowPricedCache.c)
+	}
+
 	var chairs []Chair
 	query := `SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT ?`
 	err := db.Select(&chairs, query, Limit)
@@ -584,8 +597,14 @@ func getLowPricedChair(c echo.Context) error {
 		c.Logger().Errorf("getLowPricedChair DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	res := ChairListResponse{Chairs: chairs}
 
-	return c.JSON(http.StatusOK, ChairListResponse{Chairs: chairs})
+	lowPricedCache = lowPricedChairCache{
+		c:  &res,
+		ok: true,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func getEstateDetail(c echo.Context) error {
