@@ -687,6 +687,11 @@ func postEstate(c echo.Context) error {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
+		latlonQuery := "UPDATE estate SET latlon = POINT(latitude,longitude) where id = ?;"
+		_, err = db.Exec(latlonQuery, id)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		c.Logger().Errorf("failed to commit tx: %v", err)
