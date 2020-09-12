@@ -891,7 +891,7 @@ func searchEstates2(c echo.Context) error {
 	idQuery := "SELECT id FROM estate WHERE "
 	limitOffset := " ORDER BY popularity DESC, id ASC LIMIT ? OFFSET ?"
 
-	limitCondition := "AND popularity < ? or (popularity = ? and id > ?) "
+	limitCondition := " AND popularity < ? or (popularity = ? and id > ?) "
 	limit := " ORDER BY popularity DESC, id ASC LIMIT ?"
 
 
