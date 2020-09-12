@@ -31,3 +31,4 @@ env.sh
 go/
 local/
 logs/
+.lesshst
