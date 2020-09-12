@@ -370,14 +370,13 @@ func getChairDetail2(c echo.Context) error {
 
 	chairsCache.Lock()
 	chair, ok := chairsCache.chairs[int64(id)]
-	chairsCache.Unlock()
-
 	if !ok {
 		return c.NoContent(http.StatusNotFound)
 	}
 	if chair.Stock <= 0 {
 		return c.NoContent(http.StatusNotFound)
 	}
+	chairsCache.Unlock()
 
 	resJSON, err := easyjson.Marshal(chair)
 	if err != nil {
