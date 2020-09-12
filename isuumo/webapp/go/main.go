@@ -803,7 +803,18 @@ func searchEstates(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+type lowPricedEstateCache struct {
+	c  *EstateListResponse
+	ok bool
+}
+
+var lowEstateCache lowPricedEstateCache = lowPricedEstateCache{c: nil, ok: false}
+
 func getLowPricedEstate(c echo.Context) error {
+	if lowEstateCache.ok {
+		return c.JSON(http.StatusOK, lowEstateCache.c)
+	}
+
 	estates := make([]Estate, 0, Limit)
 	query := `SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT ?`
 	err := db.Select(&estates, query, Limit)
@@ -816,7 +827,12 @@ func getLowPricedEstate(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, EstateListResponse{Estates: estates})
+	res := EstateListResponse{Estates: estates}
+
+	lowEstateCache.c = &res
+	lowEstateCache.ok = true
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func searchRecommendedEstateWithChair(c echo.Context) error {
