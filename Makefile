@@ -126,3 +126,7 @@ setup:
 	sudo chmod +x /usr/local/bin/slackcat
 	slackcat --configure
 	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip
+
+.SILENT: mspec
+mspec:
+	(grep processor /proc/cpuinfo; free -m) | $(SLACKCAT)
